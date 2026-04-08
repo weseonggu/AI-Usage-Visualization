@@ -109,6 +109,13 @@ export interface SequenceMessage {
   type: 'request' | 'response' | 'tool_call' | 'tool_result' | 'agent_spawn' | 'agent_result';
 }
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
 export const api = {
   detectClaudeDirs: async (): Promise<string[]> => {
     try {
@@ -132,9 +139,10 @@ export const api = {
       return false;
     }
   },
-  getProjects: (claudeDir: string) => fetchJson<ProjectInfo[]>('/projects', claudeDir),
-  getSessions: (claudeDir: string, projectId: string) =>
-    fetchJson<SessionInfo[]>(`/projects/${projectId}/sessions`, claudeDir),
+  getProjects: (claudeDir: string, page = 1, limit = 10) =>
+    fetchJson<PaginatedResponse<ProjectInfo>>(`/projects?page=${page}&limit=${limit}`, claudeDir),
+  getSessions: (claudeDir: string, projectId: string, page = 1, limit = 10) =>
+    fetchJson<PaginatedResponse<SessionInfo>>(`/projects/${projectId}/sessions?page=${page}&limit=${limit}`, claudeDir),
   getSessionMessages: (claudeDir: string, projectId: string, sessionId: string) =>
     fetchJson<unknown[]>(`/sessions/${projectId}/${sessionId}`, claudeDir),
   getSessionStats: (claudeDir: string, projectId: string, sessionId: string) =>

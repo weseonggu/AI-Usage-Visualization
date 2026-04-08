@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { api, type SessionInfo } from '../services/api';
+import Pagination from '../components/Pagination';
+
+const PAGE_SIZE = 10;
 
 interface Props {
   claudeDir: string;
@@ -8,19 +11,34 @@ interface Props {
 
 export default function SessionList({ claudeDir }: Props) {
   const { projectId } = useParams<{ projectId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentPage = parseInt(searchParams.get('page') || '1') || 1;
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!projectId) return;
-    api.getSessions(claudeDir, projectId).then(setSessions).finally(() => setLoading(false));
-  }, [claudeDir, projectId]);
+    setLoading(true);
+    api.getSessions(claudeDir, projectId, currentPage, PAGE_SIZE)
+      .then((res) => {
+        setSessions(res.items);
+        setTotal(res.total);
+        setTotalPages(res.totalPages);
+      })
+      .finally(() => setLoading(false));
+  }, [claudeDir, projectId, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setSearchParams({ page: String(page) });
+  };
 
   if (loading) return <div className="loading">Loading sessions...</div>;
 
   return (
     <div>
-      <h2 className="page-title">Sessions ({sessions.length})</h2>
+      <h2 className="page-title">Sessions ({total})</h2>
       {sessions.map((s) => (
         <Link key={s.id} to={`/sessions/${projectId}/${s.id}`}>
           <div className="card">
@@ -38,6 +56,11 @@ export default function SessionList({ claudeDir }: Props) {
           </div>
         </Link>
       ))}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={handlePageChange}
+      />
     </div>
   );
 }

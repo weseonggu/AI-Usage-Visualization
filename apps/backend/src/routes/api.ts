@@ -14,6 +14,20 @@ function getClaudeDir(req: Request, res: Response): string | null {
   return claudeDir;
 }
 
+function getPagination(req: Request): { page: number; limit: number } {
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string) || 0));
+  return { page, limit };
+}
+
+function paginate<T>(items: T[], page: number, limit: number) {
+  if (!limit) return { items, total: items.length, page: 1, totalPages: 1 };
+  const total = items.length;
+  const totalPages = Math.ceil(total / limit);
+  const start = (page - 1) * limit;
+  return { items: items.slice(start, start + limit), total, page, totalPages };
+}
+
 // GET /api/detect - auto-detect .claude directories from mounted volumes
 router.get('/detect', async (_req, res) => {
   try {
@@ -39,25 +53,27 @@ router.post('/validate-path', async (req, res) => {
   }
 });
 
-// GET /api/projects?claudeDir=...
+// GET /api/projects?claudeDir=...&page=1&limit=10
 router.get('/projects', async (req, res) => {
   const claudeDir = getClaudeDir(req, res);
   if (!claudeDir) return;
   try {
     const projects = await getProjects(claudeDir);
-    res.json(projects);
+    const { page, limit } = getPagination(req);
+    res.json(paginate(projects, page, limit));
   } catch {
     res.status(500).json({ error: 'Failed to list projects' });
   }
 });
 
-// GET /api/projects/:projectId/sessions?claudeDir=...
+// GET /api/projects/:projectId/sessions?claudeDir=...&page=1&limit=10
 router.get('/projects/:projectId/sessions', async (req, res) => {
   const claudeDir = getClaudeDir(req, res);
   if (!claudeDir) return;
   try {
     const sessions = await getSessionsForProject(claudeDir, req.params.projectId);
-    res.json(sessions);
+    const { page, limit } = getPagination(req);
+    res.json(paginate(sessions, page, limit));
   } catch {
     res.status(500).json({ error: 'Failed to list sessions' });
   }
