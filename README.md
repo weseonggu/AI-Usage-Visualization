@@ -31,11 +31,15 @@ export HOST_HOME=~                          # Mac / Linux
 # export HOST_HOME=C:/Users/YourUsername    # Windows
 
 # 3. 실행
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d --pull always
 
 # 4. 브라우저에서 접속
 # http://localhost:8080
 ```
+
+> **업데이트**: 새 버전이 릴리즈되면 동일한 명령으로 실행하면 됩니다.
+> `--pull always` 옵션이 매번 Docker Hub에서 최신 이미지를 pull한 후 실행합니다.
+> 이 옵션 없이 `up -d`만 하면 로컬에 캐시된 이전 이미지를 그대로 사용합니다.
 
 초기 화면에서 `.claude` 경로를 입력합니다:
 - **Docker 환경**: `/data/host-home/.claude` (자동 감지됨)
