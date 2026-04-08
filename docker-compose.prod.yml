@@ -1,0 +1,20 @@
+services:
+  backend:
+    image: ${DOCKERHUB_USERNAME:-weseeonggu}/ai-viz-backend:main
+    container_name: ai-viz-backend
+    ports:
+      - "3001:3001"
+    volumes:
+      - ${HOST_HOME:-~}:/data/host-home:ro
+    environment:
+      - PORT=3001
+    restart: unless-stopped
+
+  frontend:
+    image: ${DOCKERHUB_USERNAME:-weseeonggu}/ai-viz-frontend:main
+    container_name: ai-viz-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
