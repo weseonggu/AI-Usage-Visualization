@@ -1,7 +1,25 @@
 const API_BASE = '/api';
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const res = await fetch(`${API_BASE}${url}`);
+const STORAGE_KEY = 'ai-viz-claude-dir';
+
+export function getStoredClaudeDir(): string | null {
+  return localStorage.getItem(STORAGE_KEY);
+}
+
+export function setStoredClaudeDir(path: string): void {
+  localStorage.setItem(STORAGE_KEY, path);
+}
+
+export function clearStoredClaudeDir(): void {
+  localStorage.removeItem(STORAGE_KEY);
+}
+
+async function fetchJson<T>(url: string, claudeDir?: string): Promise<T> {
+  const separator = url.includes('?') ? '&' : '?';
+  const fullUrl = claudeDir
+    ? `${API_BASE}${url}${separator}claudeDir=${encodeURIComponent(claudeDir)}`
+    : `${API_BASE}${url}`;
+  const res = await fetch(fullUrl);
   if (!res.ok) throw new Error(`API error: ${res.status}`);
   return res.json();
 }
@@ -58,13 +76,75 @@ export interface AgentFlow {
   }>;
 }
 
+export interface TimelineEvent {
+  id: string;
+  parentId: string | null;
+  timestamp: string;
+  type: 'user' | 'assistant' | 'tool_use' | 'tool_result' | 'agent_spawn' | 'agent_result';
+  actor: string;
+  actorLabel: string;
+  content: string;
+  toolName?: string;
+  model?: string;
+  tokens?: { input: number; output: number; cacheRead: number; cacheCreation: number };
+  duration?: number;
+}
+
+export interface GanttTask {
+  id: string;
+  label: string;
+  actor: string;
+  type: 'agent' | 'tool' | 'user';
+  startTime: string;
+  endTime: string;
+  model?: string;
+  toolCalls?: number;
+}
+
+export interface SequenceMessage {
+  from: string;
+  to: string;
+  label: string;
+  timestamp: string;
+  type: 'request' | 'response' | 'tool_call' | 'tool_result' | 'agent_spawn' | 'agent_result';
+}
+
 export const api = {
-  getProjects: () => fetchJson<ProjectInfo[]>('/projects'),
-  getSessions: (projectId: string) => fetchJson<SessionInfo[]>(`/projects/${projectId}/sessions`),
-  getSessionMessages: (projectId: string, sessionId: string) =>
-    fetchJson<unknown[]>(`/sessions/${projectId}/${sessionId}`),
-  getSessionStats: (projectId: string, sessionId: string) =>
-    fetchJson<SessionStats>(`/sessions/${projectId}/${sessionId}/stats`),
-  getAgentFlow: (projectId: string, sessionId: string) =>
-    fetchJson<AgentFlow>(`/sessions/${projectId}/${sessionId}/agents`),
+  detectClaudeDirs: async (): Promise<string[]> => {
+    try {
+      const res = await fetch(`${API_BASE}/detect`);
+      const data = await res.json();
+      return data.detected || [];
+    } catch {
+      return [];
+    }
+  },
+  validatePath: async (path: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE}/validate-path`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path }),
+      });
+      const data = await res.json();
+      return data.valid;
+    } catch {
+      return false;
+    }
+  },
+  getProjects: (claudeDir: string) => fetchJson<ProjectInfo[]>('/projects', claudeDir),
+  getSessions: (claudeDir: string, projectId: string) =>
+    fetchJson<SessionInfo[]>(`/projects/${projectId}/sessions`, claudeDir),
+  getSessionMessages: (claudeDir: string, projectId: string, sessionId: string) =>
+    fetchJson<unknown[]>(`/sessions/${projectId}/${sessionId}`, claudeDir),
+  getSessionStats: (claudeDir: string, projectId: string, sessionId: string) =>
+    fetchJson<SessionStats>(`/sessions/${projectId}/${sessionId}/stats`, claudeDir),
+  getAgentFlow: (claudeDir: string, projectId: string, sessionId: string) =>
+    fetchJson<AgentFlow>(`/sessions/${projectId}/${sessionId}/agents`, claudeDir),
+  getTimeline: (claudeDir: string, projectId: string, sessionId: string) =>
+    fetchJson<TimelineEvent[]>(`/sessions/${projectId}/${sessionId}/timeline`, claudeDir),
+  getGantt: (claudeDir: string, projectId: string, sessionId: string) =>
+    fetchJson<GanttTask[]>(`/sessions/${projectId}/${sessionId}/gantt`, claudeDir),
+  getSequence: (claudeDir: string, projectId: string, sessionId: string) =>
+    fetchJson<SequenceMessage[]>(`/sessions/${projectId}/${sessionId}/sequence`, claudeDir),
 };

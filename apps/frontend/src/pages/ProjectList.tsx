@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, type ProjectInfo } from '../services/api';
 
-export default function ProjectList() {
+interface Props {
+  claudeDir: string;
+}
+
+export default function ProjectList({ claudeDir }: Props) {
   const [projects, setProjects] = useState<ProjectInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.getProjects().then(setProjects).finally(() => setLoading(false));
-  }, []);
+    api.getProjects(claudeDir).then(setProjects).finally(() => setLoading(false));
+  }, [claudeDir]);
 
   if (loading) return <div className="loading">Loading projects...</div>;
 

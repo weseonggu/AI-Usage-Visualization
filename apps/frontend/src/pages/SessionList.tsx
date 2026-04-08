@@ -2,15 +2,19 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, type SessionInfo } from '../services/api';
 
-export default function SessionList() {
+interface Props {
+  claudeDir: string;
+}
+
+export default function SessionList({ claudeDir }: Props) {
   const { projectId } = useParams<{ projectId: string }>();
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!projectId) return;
-    api.getSessions(projectId).then(setSessions).finally(() => setLoading(false));
-  }, [projectId]);
+    api.getSessions(claudeDir, projectId).then(setSessions).finally(() => setLoading(false));
+  }, [claudeDir, projectId]);
 
   if (loading) return <div className="loading">Loading sessions...</div>;
 

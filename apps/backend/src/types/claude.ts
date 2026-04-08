@@ -104,6 +104,42 @@ export interface AgentFlow {
   }>;
 }
 
+// Timeline event for visualization
+export interface TimelineEvent {
+  id: string;
+  parentId: string | null;
+  timestamp: string;
+  type: 'user' | 'assistant' | 'tool_use' | 'tool_result' | 'agent_spawn' | 'agent_result';
+  actor: 'user' | 'main' | string; // 'main' or agentId
+  actorLabel: string;
+  content: string; // summary text
+  toolName?: string;
+  model?: string;
+  tokens?: { input: number; output: number; cacheRead: number; cacheCreation: number };
+  duration?: number; // ms from previous event
+}
+
+// Gantt-style data for parallel execution view
+export interface GanttTask {
+  id: string;
+  label: string;
+  actor: string;
+  type: 'agent' | 'tool' | 'user';
+  startTime: string;
+  endTime: string;
+  model?: string;
+  toolCalls?: number;
+}
+
+// Sequence diagram message
+export interface SequenceMessage {
+  from: string;
+  to: string;
+  label: string;
+  timestamp: string;
+  type: 'request' | 'response' | 'tool_call' | 'tool_result' | 'agent_spawn' | 'agent_result';
+}
+
 export interface SessionStats {
   totalMessages: number;
   userMessages: number;

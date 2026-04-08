@@ -1,4 +1,4 @@
-import { readFile, readdir, stat } from 'node:fs/promises';
+import { readFile, readdir, stat, access } from 'node:fs/promises';
 import { join } from 'node:path';
 import type {
   ClaudeMessage,
@@ -7,8 +7,55 @@ import type {
   SessionInfo,
 } from '../types/claude.js';
 
-const CLAUDE_DIR = process.env.CLAUDE_DIR || join(process.env.HOME || process.env.USERPROFILE || '', '.claude');
-const PROJECTS_DIR = join(CLAUDE_DIR, 'projects');
+function getProjectsDir(claudeDir: string): string {
+  return join(claudeDir, 'projects');
+}
+
+export async function validateClaudeDir(claudeDir: string): Promise<boolean> {
+  try {
+    await access(join(claudeDir, 'projects'));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Scan known mount points and common locations for .claude directories
+export async function findClaudeDirs(): Promise<string[]> {
+  const candidates: string[] = [];
+  const found: string[] = [];
+
+  // Check mounted volume paths (Docker convention)
+  const mountScanDirs = ['/data/host-home', '/data'];
+  for (const mountDir of mountScanDirs) {
+    try {
+      // Direct .claude under mount
+      candidates.push(join(mountDir, '.claude'));
+      // Scan one level deep for user home dirs that might contain .claude
+      const entries = await readdir(mountDir);
+      for (const entry of entries) {
+        candidates.push(join(mountDir, entry, '.claude'));
+      }
+    } catch {
+      // Mount point doesn't exist
+    }
+  }
+
+  // Also check local system paths
+  const home = process.env.HOME || process.env.USERPROFILE || '';
+  if (home) {
+    candidates.push(join(home, '.claude'));
+  }
+
+  // Validate each candidate
+  for (const candidate of candidates) {
+    if (await validateClaudeDir(candidate)) {
+      found.push(candidate);
+    }
+  }
+
+  return [...new Set(found)];
+}
 
 export async function parseJsonlFile(filePath: string): Promise<ClaudeMessage[]> {
   const content = await readFile(filePath, 'utf-8');
@@ -25,14 +72,15 @@ export async function parseJsonlFile(filePath: string): Promise<ClaudeMessage[]>
   return messages;
 }
 
-export async function getProjects(): Promise<ProjectInfo[]> {
+export async function getProjects(claudeDir: string): Promise<ProjectInfo[]> {
+  const projectsDir = getProjectsDir(claudeDir);
   const projects: ProjectInfo[] = [];
 
   try {
-    const entries = await readdir(PROJECTS_DIR);
+    const entries = await readdir(projectsDir);
 
     for (const entry of entries) {
-      const projectPath = join(PROJECTS_DIR, entry);
+      const projectPath = join(projectsDir, entry);
       const projectStat = await stat(projectPath);
       if (!projectStat.isDirectory()) continue;
 
@@ -53,8 +101,8 @@ export async function getProjects(): Promise<ProjectInfo[]> {
   return projects;
 }
 
-export async function getSessionsForProject(projectId: string): Promise<SessionInfo[]> {
-  const projectPath = join(PROJECTS_DIR, projectId);
+export async function getSessionsForProject(claudeDir: string, projectId: string): Promise<SessionInfo[]> {
+  const projectPath = join(getProjectsDir(claudeDir), projectId);
   const sessions: SessionInfo[] = [];
 
   try {
@@ -105,14 +153,14 @@ export async function getSessionsForProject(projectId: string): Promise<SessionI
   return sessions.sort((a, b) => b.startTime.localeCompare(a.startTime));
 }
 
-export async function getSessionMessages(projectId: string, sessionId: string): Promise<ClaudeMessage[]> {
-  const filePath = join(PROJECTS_DIR, projectId, `${sessionId}.jsonl`);
+export async function getSessionMessages(claudeDir: string, projectId: string, sessionId: string): Promise<ClaudeMessage[]> {
+  const filePath = join(getProjectsDir(claudeDir), projectId, `${sessionId}.jsonl`);
   return parseJsonlFile(filePath);
 }
 
-export async function getSubAgentMeta(projectId: string, sessionId: string, agentId: string): Promise<SubAgentMeta | null> {
+export async function getSubAgentMeta(claudeDir: string, projectId: string, sessionId: string, agentId: string): Promise<SubAgentMeta | null> {
   try {
-    const metaPath = join(PROJECTS_DIR, projectId, sessionId, 'subagents', `${agentId}.meta.json`);
+    const metaPath = join(getProjectsDir(claudeDir), projectId, sessionId, 'subagents', `${agentId}.meta.json`);
     const content = await readFile(metaPath, 'utf-8');
     return JSON.parse(content);
   } catch {
@@ -120,13 +168,13 @@ export async function getSubAgentMeta(projectId: string, sessionId: string, agen
   }
 }
 
-export async function getSubAgentMessages(projectId: string, sessionId: string, agentId: string): Promise<ClaudeMessage[]> {
-  const filePath = join(PROJECTS_DIR, projectId, sessionId, 'subagents', `${agentId}.jsonl`);
+export async function getSubAgentMessages(claudeDir: string, projectId: string, sessionId: string, agentId: string): Promise<ClaudeMessage[]> {
+  const filePath = join(getProjectsDir(claudeDir), projectId, sessionId, 'subagents', `${agentId}.jsonl`);
   return parseJsonlFile(filePath);
 }
 
-export async function listSubAgents(projectId: string, sessionId: string): Promise<Array<{ agentId: string; meta: SubAgentMeta | null }>> {
-  const subAgentDir = join(PROJECTS_DIR, projectId, sessionId, 'subagents');
+export async function listSubAgents(claudeDir: string, projectId: string, sessionId: string): Promise<Array<{ agentId: string; meta: SubAgentMeta | null }>> {
+  const subAgentDir = join(getProjectsDir(claudeDir), projectId, sessionId, 'subagents');
   const agents: Array<{ agentId: string; meta: SubAgentMeta | null }> = [];
 
   try {
