@@ -5,6 +5,7 @@ import SequenceDiagram from '../components/SequenceDiagram';
 import GanttChart from '../components/GanttChart';
 import TimelineView from '../components/TimelineView';
 import TokenChart from '../components/TokenChart';
+import HelpGuide from '../components/HelpGuide';
 
 interface Props {
   claudeDir: string;
@@ -69,16 +70,19 @@ export default function SessionDetail({ claudeDir }: Props) {
       <h2 className="page-title">Session Detail</h2>
 
       {/* Tabs */}
-      <div className="tabs">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            className={`tab ${activeTab === tab.id ? 'tab--active' : ''}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="tabs-row">
+        <div className="tabs">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              className={`tab ${activeTab === tab.id ? 'tab--active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <HelpGuide tab={activeTab} />
       </div>
 
       {/* Overview Tab */}
