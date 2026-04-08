@@ -1,0 +1,23 @@
+services:
+  backend:
+    build:
+      context: ./apps/backend
+    container_name: ai-viz-backend
+    ports:
+      - "3001:3001"
+    volumes:
+      - ${CLAUDE_DIR:-~/.claude}:/data/.claude:ro
+    environment:
+      - CLAUDE_DIR=/data/.claude
+      - PORT=3001
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./apps/frontend
+    container_name: ai-viz-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

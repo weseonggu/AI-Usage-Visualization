@@ -1,0 +1,20 @@
+{
+  "name": "ai-usage-visualization",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Visualize Claude Code AI agent conversations, sub-agent flows, and tool usage",
+  "workspaces": [
+    "apps/backend",
+    "apps/frontend"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:backend": "npm run dev -w apps/backend",
+    "dev:frontend": "npm run dev -w apps/frontend",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
