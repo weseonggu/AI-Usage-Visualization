@@ -30,6 +30,16 @@ export async function getSessionStats(claudeDir: string, projectId: string, sess
       continue;
     }
 
+    if (
+      msg.type === 'attachment' &&
+      (msg.attachment?.type === 'hook_success' || msg.attachment?.type === 'hook_additional_context')
+    ) {
+      hookCount++;
+      const event = msg.attachment.hookEvent || 'unknown';
+      hooksByEvent[event] = (hooksByEvent[event] || 0) + 1;
+      continue;
+    }
+
     if (msg.type === 'user') userMessages++;
     if (msg.type === 'assistant') {
       assistantMessages++;
@@ -186,6 +196,25 @@ export async function getTimeline(claudeDir: string, projectId: string, sessionI
         actorLabel: 'Hook',
         content: msg.data.hookName || msg.data.hookEvent || 'hook',
         hookEvent: msg.data.hookEvent,
+        duration,
+      });
+      if (msg.timestamp) prevTimestamp = msg.timestamp;
+      continue;
+    }
+
+    if (
+      msg.type === 'attachment' &&
+      (msg.attachment?.type === 'hook_success' || msg.attachment?.type === 'hook_additional_context')
+    ) {
+      events.push({
+        id: msg.uuid,
+        parentId: msg.parentUuid,
+        timestamp: msg.timestamp,
+        type: 'hook',
+        actor: 'main',
+        actorLabel: 'Hook',
+        content: msg.attachment.hookName || msg.attachment.hookEvent || msg.attachment.type,
+        hookEvent: msg.attachment.hookEvent,
         duration,
       });
       if (msg.timestamp) prevTimestamp = msg.timestamp;

@@ -1,7 +1,7 @@
 // JSONL message types from Claude Code sessions
 
 export interface ClaudeMessage {
-  type: 'user' | 'assistant' | 'queue-operation' | 'progress';
+  type: 'user' | 'assistant' | 'queue-operation' | 'progress' | 'attachment';
   uuid: string;
   parentUuid: string | null;
   timestamp: string;
@@ -23,6 +23,19 @@ export interface ClaudeMessage {
     hookEvent?: string;
     hookName?: string;
     command?: string;
+  };
+  // attachment/hook specific (new Claude Code format)
+  attachment?: {
+    type: 'hook_success' | 'hook_additional_context' | string;
+    hookEvent?: string;
+    hookName?: string;
+    command?: string;
+    stdout?: string;
+    stderr?: string;
+    exitCode?: number;
+    durationMs?: number;
+    content?: string | string[];
+    toolUseID?: string;
   };
   parentToolUseID?: string;
   toolUseID?: string;
