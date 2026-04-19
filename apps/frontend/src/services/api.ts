@@ -47,6 +47,8 @@ export interface SessionStats {
   userMessages: number;
   assistantMessages: number;
   toolCalls: number;
+  hookCount: number;
+  hooksByEvent: Record<string, number>;
   tokenUsage: {
     totalInput: number;
     totalOutput: number;
@@ -80,11 +82,12 @@ export interface TimelineEvent {
   id: string;
   parentId: string | null;
   timestamp: string;
-  type: 'user' | 'assistant' | 'tool_use' | 'tool_result' | 'agent_spawn' | 'agent_result';
+  type: 'user' | 'assistant' | 'tool_use' | 'tool_result' | 'agent_spawn' | 'agent_result' | 'hook';
   actor: string;
   actorLabel: string;
   content: string;
   toolName?: string;
+  hookEvent?: string;
   model?: string;
   tokens?: { input: number; output: number; cacheRead: number; cacheCreation: number };
   duration?: number;

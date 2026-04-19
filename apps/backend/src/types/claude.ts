@@ -1,7 +1,7 @@
 // JSONL message types from Claude Code sessions
 
 export interface ClaudeMessage {
-  type: 'user' | 'assistant' | 'queue-operation';
+  type: 'user' | 'assistant' | 'queue-operation' | 'progress';
   uuid: string;
   parentUuid: string | null;
   timestamp: string;
@@ -17,6 +17,15 @@ export interface ClaudeMessage {
   };
   // queue-operation specific
   operation?: 'enqueue' | 'dequeue';
+  // progress/hook specific
+  data?: {
+    type: string;
+    hookEvent?: string;
+    hookName?: string;
+    command?: string;
+  };
+  parentToolUseID?: string;
+  toolUseID?: string;
   // context fields
   cwd?: string;
   gitBranch?: string;
@@ -109,11 +118,12 @@ export interface TimelineEvent {
   id: string;
   parentId: string | null;
   timestamp: string;
-  type: 'user' | 'assistant' | 'tool_use' | 'tool_result' | 'agent_spawn' | 'agent_result';
+  type: 'user' | 'assistant' | 'tool_use' | 'tool_result' | 'agent_spawn' | 'agent_result' | 'hook';
   actor: 'user' | 'main' | string; // 'main' or agentId
   actorLabel: string;
   content: string; // summary text
   toolName?: string;
+  hookEvent?: string;
   model?: string;
   tokens?: { input: number; output: number; cacheRead: number; cacheCreation: number };
   duration?: number; // ms from previous event
@@ -145,6 +155,8 @@ export interface SessionStats {
   userMessages: number;
   assistantMessages: number;
   toolCalls: number;
+  hookCount: number;
+  hooksByEvent: Record<string, number>;
   tokenUsage: {
     totalInput: number;
     totalOutput: number;

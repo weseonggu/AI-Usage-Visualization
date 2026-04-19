@@ -10,6 +10,7 @@ const TYPE_STYLES: Record<string, { color: string; icon: string }> = {
   'tool_use': { color: '#f59e0b', icon: 'T' },
   'agent_spawn': { color: '#a855f7', icon: 'S' },
   'agent_result': { color: '#06b6d4', icon: 'R' },
+  'hook': { color: '#f97316', icon: 'H' },
 };
 
 export default function TimelineView({ data }: Props) {
@@ -40,6 +41,7 @@ export default function TimelineView({ data }: Props) {
                 <span className="timeline-actor">{event.actorLabel}</span>
                 {event.model && <span className="badge">{event.model}</span>}
                 {event.toolName && <span className="badge" style={{ background: '#f59e0b33', color: '#f59e0b' }}>{event.toolName}</span>}
+                {event.hookEvent && <span className="badge" style={{ background: '#f9731633', color: '#f97316' }}>{event.hookEvent}</span>}
               </div>
               {event.content && (
                 <div className="timeline-text">{event.content}</div>

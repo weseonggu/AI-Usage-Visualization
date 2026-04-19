@@ -104,6 +104,21 @@ export default function SessionDetail({ claudeDir }: Props) {
               <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.toolCalls}</div>
             </div>
             <div className="card">
+              <div className="meta">Hooks Fired</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: stats.hookCount > 0 ? '#f97316' : undefined }}>
+                {stats.hookCount}
+              </div>
+              {stats.hookCount > 0 && (
+                <div className="meta">
+                  {Object.entries(stats.hooksByEvent).map(([event, count]) => (
+                    <span key={event} className="badge" style={{ background: '#f9731633', color: '#f97316' }}>
+                      {event}: {count}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="card">
               <div className="meta">Tokens (API)</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>
                 {formatTokens(stats.tokenUsage.totalInput + stats.tokenUsage.totalOutput)}

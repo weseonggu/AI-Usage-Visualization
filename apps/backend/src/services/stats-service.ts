@@ -7,6 +7,8 @@ export async function getSessionStats(claudeDir: string, projectId: string, sess
   let userMessages = 0;
   let assistantMessages = 0;
   let toolCalls = 0;
+  let hookCount = 0;
+  const hooksByEvent: Record<string, number> = {};
   let totalInput = 0;
   let totalOutput = 0;
   let totalCacheCreation = 0;
@@ -20,6 +22,13 @@ export async function getSessionStats(claudeDir: string, projectId: string, sess
 
     if (!startTime && msg.timestamp) startTime = msg.timestamp;
     if (msg.timestamp) endTime = msg.timestamp;
+
+    if (msg.type === 'progress' && msg.data?.type === 'hook_progress') {
+      hookCount++;
+      const event = msg.data.hookEvent || 'unknown';
+      hooksByEvent[event] = (hooksByEvent[event] || 0) + 1;
+      continue;
+    }
 
     if (msg.type === 'user') userMessages++;
     if (msg.type === 'assistant') {
@@ -53,10 +62,12 @@ export async function getSessionStats(claudeDir: string, projectId: string, sess
   const end = endTime ? new Date(endTime).getTime() : 0;
 
   return {
-    totalMessages: messages.filter(m => m.type !== 'queue-operation').length,
+    totalMessages: messages.filter(m => m.type !== 'queue-operation' && m.type !== 'progress').length,
     userMessages,
     assistantMessages,
     toolCalls,
+    hookCount,
+    hooksByEvent,
     tokenUsage: {
       totalInput,
       totalOutput,
@@ -164,6 +175,22 @@ export async function getTimeline(claudeDir: string, projectId: string, sessionI
     const duration = prevTimestamp && msg.timestamp
       ? new Date(msg.timestamp).getTime() - new Date(prevTimestamp).getTime()
       : 0;
+
+    if (msg.type === 'progress' && msg.data?.type === 'hook_progress') {
+      events.push({
+        id: msg.uuid,
+        parentId: msg.parentUuid,
+        timestamp: msg.timestamp,
+        type: 'hook',
+        actor: 'main',
+        actorLabel: 'Hook',
+        content: msg.data.hookName || msg.data.hookEvent || 'hook',
+        hookEvent: msg.data.hookEvent,
+        duration,
+      });
+      if (msg.timestamp) prevTimestamp = msg.timestamp;
+      continue;
+    }
 
     if (msg.type === 'user') {
       events.push({
